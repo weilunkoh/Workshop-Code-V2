@@ -3,3 +3,4 @@ secrets.toml
 *.csv
 References/
 database/
+__pycache__/
