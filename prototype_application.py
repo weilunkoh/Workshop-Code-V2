@@ -5,13 +5,17 @@ from users_module import vectorstore_selection_interface
 from datetime import datetime
 from main_bot import insert_into_data_table
 import openai
+from openai import OpenAI
 import os
 from authenticate import return_api_key
 from datetime import datetime
 from langchain.memory import ConversationSummaryBufferMemory
 from langchain.memory import ConversationBufferWindowMemory
 from langchain.chat_models import ChatOpenAI
-
+client = OpenAI(
+    # defaults to os.environ.get("OPENAI_API_KEY")
+    api_key=return_api_key(),
+)
 # if "form_title" not in st.session_state:
 # 	st.session_state.form_title = "Message Generator"
 # if "question_1" not in st.session_state:
@@ -49,11 +53,11 @@ def form_input():
 		
 	with st.form("my_form"):
 		st.subheader(st.session_state.form_title)
-		q1 = st.text_input("Question 1:", value=st.session_state.question_1, key="q_1")
-		q2 = st.text_input("Question 2:", value=st.session_state.question_2, key="q_2")
-		q3 = st.text_input("Question 3:", value=st.session_state.question_3, key="q_3")
-		q4 = st.text_input("Question 4:", value=st.session_state.question_4, key="q_4")
-		q5 = st.text_input("Question 5:", value=st.session_state.question_5, key="q_5")
+		q1 = st.text_input(f"Question 1:, {st.session_state.question_1}",key="q_1")
+		q2 = st.text_input(f"Question 2:, {st.session_state.question_2}",key="q_2")
+		q3 = st.text_input(f"Question 3:, {st.session_state.question_3}",key="q_3")
+		q4 = st.text_input(f"Question 4:, {st.session_state.question_4}",key="q_4")
+		q5 = st.text_input(f"Question 5:, {st.session_state.question_5}",key="q_5")
 
 		# Every form must have a submit button.
 		submitted = st.form_submit_button("Submit")
@@ -185,7 +189,7 @@ def chat_completion_prototype(prompt):
 	openai.api_key = return_api_key()
 	os.environ["OPENAI_API_KEY"] = return_api_key()
 	prompt_template = prompt_template_prototype(prompt)
-	response = openai.ChatCompletion.create(
+	response = client.chat.completions.create(
 		model=st.session_state.openai_model,
 		messages=[
 			{"role": "system", "content":prompt_template },
@@ -230,7 +234,7 @@ def prototype_advance_bot(bot_name):
 				message_placeholder = st.empty()
 				full_response = ""
 				for response in chat_completion_prototype(prompt):
-					full_response += response.choices[0].delta.get("content", "")
+					full_response += (response.choices[0].delta.content or "")
 					message_placeholder.markdown(full_response + "▌")
 				message_placeholder.markdown(full_response)
 				#Response Rating
@@ -249,7 +253,7 @@ def prototype_advance_bot(bot_name):
 def template_prompt(prompt, prompt_template):
 	openai.api_key = return_api_key()
 	os.environ["OPENAI_API_KEY"] = return_api_key()
-	response = openai.ChatCompletion.create(
+	response = client.chat.completions.create(
 		model=st.session_state.openai_model,
 		messages=[
 			{"role": "system", "content":prompt_template},
@@ -282,7 +286,7 @@ def basic_bot(prompt, bot_name):
 			
 			full_response = ""
 			for response in template_prompt(prompt, st.session_state.my_form_template):
-				full_response += response.choices[0].delta.get("content", "")
+				full_response += (response.choices[0].delta.content or "")
 				message_placeholder.markdown(full_response + "▌")
 	
 			message_placeholder.markdown(full_response)
