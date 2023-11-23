@@ -1,5 +1,6 @@
 import streamlit as st
 import openai
+from openai import OpenAI
 import sqlite3
 from authenticate import return_api_key
 from datetime import datetime
@@ -16,6 +17,10 @@ import configparser
 import os
 from Markdown2docx import Markdown2docx
 
+client = OpenAI(
+    # defaults to os.environ.get("OPENAI_API_KEY")
+    api_key=return_api_key(),
+)
 
 config = configparser.ConfigParser()
 config.read('config.ini')
@@ -116,8 +121,6 @@ def add_response(response):
 		st.session_state.data_doc = st.session_state.data_doc + "\n\n" + response
 	
 	return opt
-		
-
 
 #response rating component	
 def rating_component():
@@ -176,7 +179,7 @@ def chat_completion_qa_memory(prompt):
 	openai.api_key = return_api_key()
 	os.environ["OPENAI_API_KEY"] = return_api_key()
 	prompt_template = memory_buffer_qa_component(prompt)
-	response = openai.ChatCompletion.create(
+	response = client.chat.completions.create(
 		model=st.session_state.openai_model,
 		messages=[
 			{"role": "system", "content":prompt_template },
@@ -232,19 +235,23 @@ def basebot_qa_memory(bot_name):
 					message_placeholder.markdown(full_response + "▌")
 				message_placeholder.markdown(full_response)
 				#Response Rating
-				if st.session_state.rating == True:
-					feedback_value = rating_component()
-				else:
-					feedback_value = 0
+				
 			st.session_state.msg.append({"role": "assistant", "content": full_response})
 			st.session_state["memory"].save_context({"input": prompt},{"output": full_response})
 			 # Insert data into the table
 			now = datetime.now() # Using ISO format for date
 			num_tokens = len(full_response + prompt)*1.3
+			#need to store num_tokens,full_response, prompt, bot_name, now and all in a dictionary
+			#if user press feedback it will look for the last entry in the database of the user and update the rating for this table
+			if st.session_state.rating == True:
+				feedback_value = rating_component()
+			else:
+				feedback_value = 0
 			#st.write(num_tokens)
-			insert_into_data_table(now.strftime("%d/%m/%Y %H:%M:%S"),  full_response, prompt, num_tokens, bot_name, feedback_value)
+			insert_into_data_table(now.strftime("%d/%m/%Y %H:%M:%S"),  full_response, prompt, num_tokens, bot_name)
 		if st.session_state.download_response_flag == True:
 			st.session_state.chat_response = add_response(full_response)
+		
 			
 			
 	except Exception as e:
@@ -274,7 +281,7 @@ def chat_completion_memory(prompt):
 	os.environ["OPENAI_API_KEY"] = return_api_key()	
 	prompt_template = memory_buffer_component()
 	#st.write("Prompt Template ", prompt_template)
-	response = openai.ChatCompletion.create(
+	response = client.chat.completions.create(
 		model=st.session_state.openai_model,
 		messages=[
 			{"role": "system", "content":prompt_template },
@@ -325,22 +332,17 @@ def basebot_memory(bot_name):
 					full_response += (response.choices[0].delta.content or "")
 					message_placeholder.markdown(full_response + "▌")
 				message_placeholder.markdown(full_response)
-				if st.session_state.rating == True:
-					feedback_value = rating_component()
-				else:
-					feedback_value = 0
+		
 			st.session_state.msg.append({"role": "assistant", "content": full_response})
 			st.session_state["memory"].save_context({"input": prompt},{"output": full_response})
 			 # Insert data into the table
 			now = datetime.now() # Using ISO format for date
 			num_tokens = len(full_response + prompt)*1.3
-			#st.write(num_tokens)
-			insert_into_data_table(now.strftime("%d/%m/%Y %H:%M:%S"),  full_response, prompt, num_tokens, bot_name, feedback_value)
-			# if st.session_state.visuals == True:
-			# 	metacognitive_prompter(full_response)
-			# if st.session_state.visuals == True:
-			# 	metacognitive_prompter(full_response)
-			# #metacognitive_prompter(full_response)
+			if st.session_state.rating == True:
+				feedback_value = rating_component()
+			else:
+				feedback_value = 0
+			insert_into_data_table(now.strftime("%d/%m/%Y %H:%M:%S"),  full_response, prompt, num_tokens, bot_name)
 		if st.session_state.download_response_flag == True:
 			st.session_state.chat_response = add_response(full_response)
 
@@ -357,7 +359,7 @@ def basebot_memory(bot_name):
 def chat_completion(prompt):
 	openai.api_key = return_api_key()
 	os.environ["OPENAI_API_KEY"] = return_api_key()
-	response = openai.ChatCompletion.create(
+	response = client.chat.completions.create(
 		model=st.session_state.openai_model,
 		messages=[
 			{"role": "system", "content": st.session_state.chatbot},
@@ -408,7 +410,7 @@ def basebot(bot_name):
 				now = datetime.now() # Using ISO format for date
 			num_tokens = len(full_response + prompt)*1.3
 			st.session_state.msg.append({"role": "assistant", "content": full_response})
-			insert_into_data_table(now.strftime("%d/%m/%Y %H:%M:%S"),  full_response, prompt, num_tokens, bot_name, feedback_value)
+			insert_into_data_table(now.strftime("%d/%m/%Y %H:%M:%S"),  full_response, prompt, num_tokens, bot_name)
 			# if st.session_state.visuals == True:
 			# 	metacognitive_prompter(full_response)
 		if st.session_state.download_response_flag == True:
@@ -443,7 +445,7 @@ def chat_completion_qa(prompt):
 	os.environ["OPENAI_API_KEY"] = return_api_key()
 	#show the qa component results in the prompt
 	prompt_template = qa_component(prompt)
-	response = openai.ChatCompletion.create(
+	response = client.chat.completions.create(
 		model=st.session_state.openai_model,
 		messages=[
 			{"role": "system", "content":prompt_template },
@@ -498,7 +500,7 @@ def basebot_qa(bot_name):
 			now = datetime.now() # Using ISO format for date
 			num_tokens = len(full_response + prompt)*1.3
 			#st.write(num_tokens)
-			insert_into_data_table(now.strftime("%d/%m/%Y %H:%M:%S"),  full_response, prompt, num_tokens, bot_name, feedback_value)
+			insert_into_data_table(now.strftime("%d/%m/%Y %H:%M:%S"),  full_response, prompt, num_tokens, bot_name)
 			# if st.session_state.visuals == True:
 			# 	metacognitive_prompter(full_response)
 			#metacognitive_prompter(full_response)
@@ -544,7 +546,7 @@ def search_bot():
 			now = datetime.now() # Using ISO format for date
 			num_tokens = len(full_response + prompt)*1.3
 			#st.write(num_tokens)
-			insert_into_data_table(now.strftime("%d/%m/%Y %H:%M:%S"),  full_response, prompt, num_tokens, feedback_value)
+			insert_into_data_table(now.strftime("%d/%m/%Y %H:%M:%S"),  full_response, prompt, num_tokens)
 			# if st.session_state.visuals == True:
 			# 	metacognitive_prompter(full_response)
 		if st.session_state.download_response_flag == True:

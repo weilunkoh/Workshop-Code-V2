@@ -1,4 +1,5 @@
 #No need SQLite
+import nltk
 import streamlit as st
 from streamlit_antd_components import menu, MenuItem
 import streamlit_antd_components as sac
@@ -7,8 +8,12 @@ from files_module import display_files,docs_uploader, delete_files
 from kb_module import display_vectorstores, create_vectorstore, delete_vectorstores
 from authenticate import login_function,check_password
 from class_dash import download_data_table_csv
+from machine import upload_csv, plot_prices, prepare_data_and_train, plot_predictions, load_teachable_machines
 from agent import agent_bot, agent_management, wiki_search, YouTubeSearchTool, DuckDuckGoSearchRun
-from lesson_plan import lesson_collaborator, lesson_commentator, lesson_bot, lesson_map_generator, lesson_design_options
+from chatbot import call_api, api_call, rule_based
+from prototype_application import my_first_app, prototype_settings, my_first_app_advance
+from analytics_dashboard import pandas_ai
+from assistant import assistant_demo, init_session_state
 #New schema move function fom settings
 from database_schema import create_dbs
 import exercises as ex
@@ -34,8 +39,13 @@ from org_module import (
 	process_user_profile,
 	remove_or_reassign_teacher_ui,
 	reassign_student_ui,
-	change_teacher_profile_ui
+	change_teacher_profile_ui,
+	add_user,
+	streamlit_delete_interface,
+	add_class,
+	add_level,
 )
+
 from pwd_module import reset_passwords, password_settings
 from users_module import (
 	link_users_to_app_function_ui,
@@ -49,9 +59,20 @@ from users_module import (
 )
 
 from bot_settings import bot_settings_interface, load_bot_settings
+from openai_features import generate_image, record_myself, upload_audio, analyse_image, text_to_speech
 from PIL import Image
 import configparser
 import ast
+
+def download_nltk_data_if_absent(package_name):
+    try:
+        # Try loading the package to see if it exists
+        nltk.data.find('tokenizers/' + package_name)
+    except LookupError:
+        # If the package doesn't exist, download it
+        nltk.download(package_name)
+
+download_nltk_data_if_absent('punkt')
 
 
 class ConfigHandler:
@@ -101,6 +122,7 @@ CONVERSATION = config_handler.get_value('constants', 'CONVERSATION')
 MINDMAP = config_handler.get_value('constants', 'MINDMAP')
 METACOG = config_handler.get_value('constants', 'METACOG')
 ACK = config_handler.get_value('application_agreement', 'ACK')
+PROTOTYPE = config_handler.get_value('constants', 'PROTOTYPE')
 
 def is_function_disabled(function_name):
 	#st.write("Function name: ", function_name)
@@ -215,9 +237,19 @@ def main():
 		if "chat_response" not in st.session_state:
 			st.session_state.chat_response = ""
 
+		#useful session state variables for testing and debugging
+		#not in use for production
+		if "test1"	not in st.session_state:
+			st.session_state.test1 = ""
+		
+		if "test2"	not in st.session_state:
+			st.session_state.test2 = ""
+		
+		#These functions below will create the initial database and administator account
 		create_dbs()
 		initialise_admin_account()
-		#PLEASE REMOVE THIS 
+
+		#PLEASE REMOVE THIS or COMMENT IT 
 		#st.write("User Profile: ", st.session_state.user)
 		
 		#PLEASE REMOVE ABOVE
@@ -244,20 +276,22 @@ def main():
 						#sac.MenuItem('Class Dashboard', icon='clipboard-data', disabled=is_function_disabled('Class Dashboard')),
 					]),
 
-					sac.MenuItem('Basics of AI', icon='robot', children=[
+					sac.MenuItem('Basic AI', icon='robot', children=[
 						sac.MenuItem(return_function_name('Machine Learning'), icon='clipboard-data', disabled=is_function_disabled('Machine Learning')),
 						sac.MenuItem(return_function_name('Deep Learning'), icon='clipboard-data', disabled=is_function_disabled('Deep Learning')),
 					]),
 
 					sac.MenuItem('GenAI Features & Apps', icon='book', children=[
 						sac.MenuItem(return_function_name('AI Analytics'), icon='graph-up', disabled=is_function_disabled('AI Analytics')),
-						sac.MenuItem(return_function_name('Image Generator'), icon='camera', disabled=is_function_disabled('Image Generator')),
-						sac.MenuItem(return_function_name('Voice'), icon='mic',disabled=is_function_disabled('Voice')),
+						sac.MenuItem(return_function_name('Image Generator','Image Analyser and Generator'), icon='camera', disabled=is_function_disabled('Image Generator')),
+						sac.MenuItem(return_function_name('Voice','Voice Analyser and Generator'), icon='mic',disabled=is_function_disabled('Voice')),
 					]),	
 
 
 					sac.MenuItem('Coding Exercises', icon='person-fill-gear', children=[
-						sac.MenuItem(return_function_name('Streamlit App Ex','Streamlit App (Exercise)'), icon='filetype-py', disabled=is_function_disabled('Streamlit App Ex')),
+						sac.MenuItem(return_function_name('Streamlit App Ex','Streamlit App (Exercise)'), icon='filetype-py', disabled=is_function_disabled('Streamlit App Ex'), children=[
+							sac.MenuItem("Python Exercises", icon='filetype-py'),
+							sac.MenuItem("First Streamlit App", icon='filetype-py'),]),
 						sac.MenuItem(return_function_name('Rule Based Chatbot Ex','Rule Based Chatbot (Exercise)'), icon='filetype-py', disabled=is_function_disabled('Rule Based Chatbot Ex')),
 						sac.MenuItem(return_function_name('Open AI API Call Ex','Open AI API Call (Exercise)'), icon='filetype-py', disabled=is_function_disabled('Open AI API Call Ex')),
 						sac.MenuItem(return_function_name('AI Chatbot Ex','AI Chatbot(Exercise)'), icon='filetype-py', disabled=is_function_disabled('AI Chatbot Ex'), children=[
@@ -272,7 +306,10 @@ def main():
 							sac.MenuItem("Database", icon='filetype-py'),
 							sac.MenuItem("OpenAI Basebot with Memory & RAG & recorded", icon='filetype-py'),
 						]),
-						sac.MenuItem(return_function_name('Agent Chatbot Ex','Agent Chatbot(Exercise)'), icon='filetype-py', disabled=is_function_disabled('Agent Chatbot Ex')),
+						sac.MenuItem(return_function_name('Agent Chatbot Ex','Agent Chatbot(Exercise)'), icon='filetype-py', disabled=is_function_disabled('Agent Chatbot Ex'), children=[
+							sac.MenuItem("Basic Langchain Agent Chatbot", icon='filetype-py'),
+							sac.MenuItem("OpenAI Assistant Chatbot", icon='filetype-py'),
+						]),
 						sac.MenuItem(return_function_name('Gen AI Prototype Ex', 'GenAi prototype Application(Exercise)'), icon='filetype-py', disabled=is_function_disabled('Gen AI Prototype Ex')),
 						
 					]),
@@ -349,88 +386,201 @@ def main():
 			vectorstore_selection_interface(st.session_state.user['id'])
 
 		elif st.session_state.option == 'Machine Learning':
-			# Code for Machine Learning
-			pass
+			
+			st.subheader(f":green[{st.session_state.option}]")
+			df = upload_csv()
+			if df is not None:
+				plot_prices(df)
+				if st.checkbox('Start Predictive Model'):
+					df_predict, tree, lr, column_name, future_days, X, Sucess =  prepare_data_and_train(df)
+					if Sucess:
+						plot_predictions(df_predict, tree, lr, column_name, future_days, X)
+					else:
+						st.warning("Please fill in all the fields in the machine learning form")
+		
 		elif st.session_state.option == 'Deep Learning':
-			# Code for Deep Learning
-			pass
+			st.subheader(f":green[{st.session_state.option}]")
+			load_teachable_machines()
 		elif st.session_state.option == 'AI Analytics':
 			# Code for AI Analytics
+			st.subheader(f":green[{st.session_state.option}]")
+			pandas_ai(st.session_state.user['id'], st.session_state.user['school_id'], st.session_state.user['profile_id'])
 			pass
-		elif st.session_state.option == 'Image Generator':
+		elif st.session_state.option == 'Image Analyser and Generator':
 			# Code for Image Generator
+			st.subheader(f":green[{st.session_state.option}]")
+			generate_image()
+			st.divider()
+			analyse_image()
 			pass
-		elif st.session_state.option == 'Voice':
+		elif st.session_state.option == 'Voice Analyser and Generator':
+			st.subheader(f":green[{st.session_state.option}]")
 			# Code for Voice
+			upload_audio()
+			st.divider()
+			record_myself()
+			st.divider()
+			text_to_speech()
 			pass
-		elif st.session_state.option == 'Streamlit App (Exercise)':
-			#st.write("Call your streamlit_app function here")
+		
+		#========================Modify the workshop code below this line========================#
+
+		elif st.session_state.option == 'Python Exercises':
+			# Code for python exercises
+			st.subheader(f":green[{st.session_state.option}]")
+			st.divider()
+			st.write("Hello world function")
+			ex.hello_world()
+			st.divider()
+			st.write("Input Exercise")
+			ex.input_exercise()
+			st.divider()
+			st.write("Button Exercise")
+			ex.button_exercise()
+			st.divider()
+			st.write("Using if else")
+			ex.using_if_else()
+			st.divider()
+			st.write("Challenge 1 - Create a button and input application")
+			ex.button_input_exercise()
+			st.divider()
+			st.write("Using Session State")
+			ex.using_session_state()
+			st.divider()
+			st.write("rule based question and answer")
+			ex.rule_based_question_answering()
+			st.divider()
+			st.write("Challenge 2 - rule based question and answer with session state")
+			ex.rule_based_question_answering_challenge()
+			st.divider()
+			st.write("Data Structure in python")
+			ex.simple_data_structure()
+			st.divider()
+			st.write("Displaying data structure")
+			ex.display_dictionary_in_dataframe()
+			st.divider()
+			st.write("For loop exercise")
+			ex.loop_exercise()
+			st.divider()
+			st.write("Streamlit form and widgets exercise")
+			ex.streamlit_form_exercise()
+			st.divider()
+			st.write("Challenge 3 - Form input into dictionary and show all the inputs")
+			ex.append_form_data_to_list()
+			st.divider()
+
+			# Call the python exercises function here
+			pass
+		elif st.session_state.option == 'First Streamlit App':
+			# Code for Streamlit App Exercise
+			# Call the streamlit app exercise function here
 			ex.streamlit_app()
+			
 			pass
 		elif st.session_state.option == 'Rule Based Chatbot (Exercise)':
 			# Code for Rule Based Chatbot Exercise
+			# Call the rule based chatbot exercise function here
 			ex.rule_based_chatbot()
 			pass
 		elif st.session_state.option == 'Open AI API Call (Exercise)':
-			# Code for Open AI API Call Exercise
-			ex.api_call_exercise()
+			# call the API call exercise function here
+			if st.button("Call API"):
+				ex.api_call_exercise()
+			st.divider()
+			# Call the API challenge function here
 			ex.call_api_challenge()
 			pass
 		elif st.session_state.option == 'OpenAI Basebot':
+			# call the API call exercise function here
 			ex.ai_chatbot()
 			pass
 		elif st.session_state.option == 'OpenAI Basebot with streaming':
+			# call the openai basebot with streaming function here
 			ex.basebot()
 			pass
 		elif st.session_state.option == 'Prompt Design Template':
-			# Code 
+			# call the prompt design function here
 			ex.prompt_design()
 			pass
 		elif st.session_state.option == 'OpenAI Basebot with Prompt Design':
-			# Code for Agent Chatbot Exercise
+			# call the openai basebot with prompt design function here
 			ex.prompt_design()
 			ex.basebot_prompt_design()
 			pass
 		elif st.session_state.option == 'Memory':
-			# Code for Agent Chatbot Exercise
+			# call the memory function here
 			ex.return_memory()
 			pass
 		elif st.session_state.option == 'OpenAI Basebot with Memory':
-			# Code for Agent Chatbot Exercise
-			ex.prompt_design_memory()
+			# call the openai basebot with memory function here
+			ex.prompt_design()
 			ex.basebot_prompt_design_memory()
 			pass
 		elif st.session_state.option == 'RAG':
-			# Code for Agent Chatbot Exercise
+			# call the RAG function here
 			ex.show_rag_results()
 			pass
 		elif st.session_state.option == 'OpenAI Basebot with Memory & RAG':
-			# Code for Agent Chatbot Exercise
+			# call the openai basebot with memory and RAG function here
+			ex.prompt_design()
 			ex.basebot_prompt_design_memory_rag()
 			pass
 		elif st.session_state.option == 'Database':
-			# Code for Agent Chatbot Exercise
+			# call the database function here
 			ex.initialise()
 			pass
 		elif st.session_state.option == 'OpenAI Basebot with Memory & RAG & recorded':
-			# Code for Gen AI Prototype Exercise
-			ex.prompt_design_memory()
+			# call the openai basebot with memory and RAG function and recorded data here
+			ex.prompt_design()
 			ex.basebot_prompt_design_memory_rag_data()
 			pass
+
+		elif st.session_state.option == 'Basic Langchain Agent Chatbot':
+			#call the agent chatbot function here
+			on = st.toggle('Switch on to access the More Tools Agent')
+			if on:
+				ex.agent_bot_with_more_tools()
+			else:
+				ex.agent_bot()
+
+		elif st.session_state.option == 'OpenAI Assistant Chatbot':
+			#call the agent chatbot function here
+			init_session_state()
+			assistant_demo()
+			pass
+
+
+		elif st.session_state.option == 'GenAi prototype Application(Exercise)':
+			#call the prototype application function here
+			ex.prototype_application()
+		
+		#========================ZERO CODE workshop code below do not modify========================#
+
 		elif st.session_state.option == 'Rule Based Chatbot':
-			# Code for Rule Based Chatbot
+			# Code for Rule Based Chatbot - Zerocode
+			rule_based()
 			pass
 		elif st.session_state.option == 'Open AI API Call':
 			# Code for Open AI API Call
+			call_api()
 			pass
 		elif st.session_state.option == 'Prototype Application':
-			# Code for Prototype Application
+			# Code for Prototype Application - Zerocode
+			st.subheader(f":green[{st.session_state.option}]")
+			on = st.toggle('Advance Chatbot')
+			if on:
+				my_first_app_advance(PROTOTYPE)
+			else:
+				my_first_app(PROTOTYPE)
 			pass
 		elif st.session_state.option == 'Prototype Settings':
-			# Code for Prototype Settings
+			# Code for Prototype Settings - Zerocode
+			st.subheader(f":green[{st.session_state.option}]")
+			prototype_settings()
 			pass
+
 		elif st.session_state.option == 'AI Chatbot':
-			
+			#Code for AI Chatbot - ZeroCode
 			st.write("Current Chatbot Template: ", st.session_state.chatbot)
 			#check if API key is entered
 			with st.expander("Chatbot Settings"):
@@ -537,16 +687,20 @@ def main():
 
 		#Organisation Tools
 		elif st.session_state.option == "Users Management":
-			st.subheader(f":green[{st.session_state.option}]") 
-			sch_id, msg = process_user_profile(st.session_state.user["profile_id"])
-			rows = has_at_least_two_rows()
-			if rows >= 2:
-				#Password Reset
-				st.subheader("User accounts information")
-				df = display_accounts(sch_id)
-				st.warning("Password Management")
-				st.subheader("Reset passwords of users")
-				reset_passwords(df)
+			if st.session_state.user['profile_id'] == SA or st.session_state.user['profile_id'] == AD:	
+				st.subheader(f":green[{st.session_state.option}]") 
+				sch_id, msg = process_user_profile(st.session_state.user["profile_id"])
+				rows = has_at_least_two_rows()
+				if rows >= 2:
+					#Password Reset
+					st.subheader("User accounts information")
+					df = display_accounts(sch_id)
+					st.warning("Password Management")
+					st.subheader("Reset passwords of users")
+					reset_passwords(df)
+					add_user(sch_id)
+			else:
+				st.subheader(f":red[This option is accessible only to administrators only]")
 		
 		elif st.session_state.option == "Org Management":
 			if st.session_state.user['profile_id'] == SA:
@@ -571,7 +725,8 @@ def main():
 									sac.StepsItem(title='step 3', description='Change Teachers Profile'),
 									sac.StepsItem(title='step 4', description='Setting function access for profiles'),
 									sac.StepsItem(title='step 5', description='Reassign Students to Classes(Optional)'),
-									sac.StepsItem(title='step 6', description='Managing SQL Schema Tables',icon='radioactive'),
+									sac.StepsItem(title='step 6', description='Add/Delete Classes and Levels'),
+									sac.StepsItem(title='step 7', description='Managing SQL Schema Tables',icon='radioactive'),
 								], format_func='title', placement='vertical', size='small'
 							)
 					if steps_options == "step 1":
@@ -588,6 +743,12 @@ def main():
 					elif steps_options == "step 5":
 						reassign_student_ui(sch_id)
 					elif steps_options == "step 6":
+						add_level(sch_id)
+						st.divider()
+						add_class(sch_id)
+						st.divider()
+						streamlit_delete_interface()
+					elif steps_options == "step 7":
 						st.subheader(":red[Managing SQL Schema Tables]")
 						st.warning("Please do not use this function unless you know what you are doing")
 						if st.checkbox("I know how to manage SQL Tables"):

@@ -1,8 +1,14 @@
 import openai
+from openai import OpenAI
 import streamlit as st
 from authenticate import return_api_key
 import os
 import pandas as pd
+
+client = OpenAI(
+    # defaults to os.environ.get("OPENAI_API_KEY")
+    api_key=return_api_key(),
+)
 
 def call_api():
 	prompt_design = st.text_input("Enter your the prompt design for the API call:", value="You are a helpful assistant.")
@@ -20,7 +26,7 @@ def api_call(p_design, p_query):
 	st.title("Api Call")
 	MODEL = "gpt-3.5-turbo"
 	with st.status("Calling the OpenAI API..."):
-		response = openai.ChatCompletion.create(
+		response = client.chat.completions.create(
 			model=MODEL,
 			messages=[
 				{"role": "system", "content": p_design},
@@ -32,10 +38,14 @@ def api_call(p_design, p_query):
 		st.markdown("**This is the raw response:**") 
 		st.write(response)
 		st.markdown("**This is the extracted response:**")
-		st.write(response["choices"][0]["message"]["content"].strip())
-		s = str(response["usage"]["total_tokens"])
-		st.markdown("**Total tokens used:**")
-		st.write(s)
+		st.write(response.choices[0].message.content)
+		completion_tokens = response.usage.completion_tokens
+		prompt_tokens = response.usage.prompt_tokens
+		total_tokens = response.usage.total_tokens
+
+		st.write(f"Completion Tokens: {completion_tokens}")
+		st.write(f"Prompt Tokens: {prompt_tokens}")
+		st.write(f"Total Tokens: {total_tokens}")
 
 def rule_based():
 	st.write("Rules for the chatbot:")
