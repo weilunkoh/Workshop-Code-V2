@@ -111,23 +111,24 @@ def rule_based_question_answering():
 
 # challenge 4 modify the code below to create a rule based question answering system using session state and show the previous query
 def rule_based_question_answering_challenge():
-    if "previous_query" not in st.session_state:
-        st.session_state.previous_query = ""
-    st.write("Previous query is " + st.session_state.previous_query)
-    question = st.text_input("Enter your query:")
-    # modify below to use session state
-    if question == "What is your name?":
-        st.write("My name is EAI, an electronic artificial being.")
-        st.session_state.previous_query = question
-        pass
-    elif question == "How old are you?":
-        st.write("Today is my birthday!")
-        st.session_state.previous_query = question
-        pass
-    else:
-        st.write("I am sorry, I am unable to help you with your query.")
-        st.session_state.previous_query = question
-        pass
+	if "previous_query" not in st.session_state:
+		st.session_state.previous_query = ""
+	st.write("Previous query is " + st.session_state.previous_query)
+	question = st.text_input("Enter your query:")
+	#modify below to use session state
+	if "previous_query" not in st.session_state:
+		st.session_state.previous_query = ""
+	if question == "What is your name?":
+		st.write("My name is EAI, an electronic artificial being.")
+		st.session_state.previous_query = question
+	elif question == "How old are you?":
+		st.write("Today is my birthday!")
+		st.session_state.previous_query = question
+	elif question == "Show me the previous query":
+		st.write("Previous query is " + st.session_state.previous_query)
+	else:
+		st.write("I am sorry, I am unable to help you with your query.")
+		st.session_state.previous_query = question
 
 
 # exercise 5
@@ -297,21 +298,22 @@ def rule_based_chatbot():
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display chat messages from history on app rerun
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # React to user input
-    if prompt := st.chat_input("What is up?"):
-        # Display user message in chat message container
-        st.chat_message("user").markdown(prompt)
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-
-        # modify the code below to create a rule based bot ( challenge 2), replace f"Echo: {prompt}" with get_reply(prompt)
-        response = f"Echo: {prompt}"
-        # response = get_reply(prompt)
+	# Display chat messages from history on app rerun
+	for message in st.session_state.messages:
+		with st.chat_message(message["role"]):
+			st.markdown(message["content"])
+	
+	# React to user input
+	if prompt := st.chat_input("What is up?"):
+			
+		# Display user message in chat message container
+		st.chat_message("user").markdown(prompt)
+		# Add user message to chat history
+		st.session_state.messages.append({"role": "user", "content": prompt})
+		
+		#modify the code below to create a rule based bot ( challenge 2), replace f"Echo: {prompt}" with get_reply(prompt)
+		# response = f"Echo: {prompt}"
+		response = get_reply(prompt)
 
         # Display assistant response in chat message container
         with st.chat_message("assistant"):
@@ -370,9 +372,11 @@ def call_api_challenge():
         # modify the code below to create a function call_api to pass the prompt_design and prompt_query to call the OpenAI API
         if prompt_design and prompt_query:
             # call your api_call function here
-            st.write("Call the api_call function here")
+            # st.write("Call the api_call function here")
+			api_call(prompt_design, prompt_query)
         else:
             st.warning("Please enter a prompt design and prompt query.")
+
 
 
 # challenge 2 this function below is called by the call_api_challenge function
@@ -426,20 +430,23 @@ def ai_chatbot():
     if "messages" not in st.session_state:
         st.session_state.messages = []
 
-    # Display chat messages from history on app rerun
-    for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            st.markdown(message["content"])
-
-    # React to user input
-    if prompt := st.chat_input("What is up?"):
-        # Display user message in chat message container
-        st.chat_message("user").markdown(prompt)
-        # Add user message to chat history
-        st.session_state.messages.append({"role": "user", "content": prompt})
-
-        # remove get_reply function and replace with chat_completion function and pass in two parameters
-        response = get_reply(prompt)
+	# Display chat messages from history on app rerun
+	for message in st.session_state.messages:
+		with st.chat_message(message["role"]):
+			st.markdown(message["content"])
+	
+	# React to user input
+	if prompt := st.chat_input("What is up?"):
+			
+		# Display user message in chat message container
+		st.chat_message("user").markdown(prompt)
+		# Add user message to chat history
+		st.session_state.messages.append({"role": "user", "content": prompt})
+		
+		#remove get_reply function and replace with chat_completion function and pass in two parameters
+		# response = get_reply(prompt)
+		response = chat_completion("You are a helpful assistant", prompt)
+		
 
         # Display assistant response in chat message container
         with st.chat_message("assistant"):
@@ -502,26 +509,15 @@ def basebot():
 
 # Exercise 5 - Set the prompt design for the chatbot
 def prompt_design():
-    st.title("Prompt Design")
-    if "prompt_template" not in st.session_state:
-        st.session_state.prompt_template = "You are a helpful assistant."
-    name = st.text_input("Enter your name:", value="John Doe")
-    prompt_design = st.text_input(
-        "Enter your the prompt design for the chatbot:",
-        value="You are a helpful assistant.",
-    )
-    if prompt_design and name:
-        st.session_state.prompt_template = (
-            prompt_design + f" .You are talking to a person called {name}."
-        )
-        st.success(
-            "Prompt Design: "
-            + prompt_design
-            + " . \n\n You are talking to a person called "
-            + name
-            + "."
-        )
 
+	st.title("Prompt Design")
+	if "prompt_template" not in st.session_state:
+		st.session_state.prompt_template = "You are a helpful assistant."
+	name = st.text_input("Enter your name:", value="John Doe")
+	prompt_design = st.text_input("Enter your the prompt design for the chatbot:", value="You are a helpful assistant.")
+	if prompt_design and name:
+		st.session_state.prompt_template = prompt_design + f" .You are talking to a person called {name}."
+		st.success("Prompt Design: " + prompt_design + "\n\n You are talking to a person called " + name + ".")
 
 # Challenge 5 - Set the prompt design for the chatbot for the AI Chatbot
 # Hint Replace You are a helpful assistant with the prompt design variable #st.session_state.prompt_template
@@ -542,20 +538,19 @@ def basebot_prompt_design():
             with st.chat_message("user"):
                 st.markdown(prompt)
 
-            with st.chat_message("assistant"):
-                message_placeholder = st.empty()
-                full_response = ""
-                # streaming function
-                # replace the prompt design "You are a helpful assistant" with the prompt design variable st.session_state.prompt_template
-                for response in chat_completion_stream(
-                    "You are a helpful assistant", prompt
-                ):
-                    full_response += response.choices[0].delta.content or ""
-                    message_placeholder.markdown(full_response + "▌")
-                message_placeholder.markdown(full_response)
-            st.session_state.chat_msg.append(
-                {"role": "assistant", "content": full_response}
-            )
+			with st.chat_message("assistant"):
+				message_placeholder = st.empty()
+				full_response = ""
+				# streaming function
+				#replace the prompt design "You are a helpful assistant" with the prompt design variable st.session_state.prompt_template
+				# for response in chat_completion_stream("You are a helpful assistant", prompt):
+				for response in chat_completion_stream(st.session_state.prompt_template, prompt):
+					full_response += (response.choices[0].delta.content or "")
+					message_placeholder.markdown(full_response + "▌")
+				message_placeholder.markdown(full_response)
+			st.session_state.chat_msg.append(
+				{"role": "assistant", "content": full_response}
+			)
 
     except Exception as e:
         st.error(e)
@@ -601,21 +596,19 @@ def basebot_prompt_design_memory():
             with st.chat_message("user"):
                 st.markdown(prompt)
 
-            with st.chat_message("assistant"):
-                message_placeholder = st.empty()
-                full_response = ""
-                # Add teh memory context after the st.session_state.prompt_template
-                for response in chat_completion_stream(
-                    st.session_state.prompt_template, prompt
-                ):
-                    full_response += response.choices[0].delta.content or ""
-                    message_placeholder.markdown(full_response + "▌")
-                message_placeholder.markdown(full_response)
-                # modify the code below by calling save_context function found in exercise 6
-                # st.session_state.memory_variables ( save context to memory_variables) )
-            st.session_state.chat_msg.append(
-                {"role": "assistant", "content": full_response}
-            )
+			with st.chat_message("assistant"):
+				message_placeholder = st.empty()
+				full_response = ""
+				# Add teh memory context after the st.session_state.prompt_template
+				for response in chat_completion_stream(st.session_state.prompt_template + memory_context, prompt):
+					full_response += (response.choices[0].delta.content or "")
+					message_placeholder.markdown(full_response + "▌")
+				message_placeholder.markdown(full_response)
+				#modify the code below by calling save_context function found in exercise 6
+				#st.session_state.memory_variables ( save context to memory_variables) )
+			st.session_state.chat_msg.append(
+				{"role": "assistant", "content": full_response}
+			)
 
     except Exception as e:
         st.error(e)
@@ -676,24 +669,20 @@ def basebot_prompt_design_memory_rag():
             with st.chat_message("user"):
                 st.markdown(prompt)
 
-            with st.chat_message("assistant"):
-                message_placeholder = st.empty()
-                full_response = ""
-                # Call rag_results and pass the prompt variable into the function
-                rag = rag_results(prompt)
-                # add the rag variable after the memory context
-                for response in chat_completion_stream(
-                    st.session_state.prompt_template + memory_context, prompt
-                ):
-                    full_response += response.choices[0].delta.content or ""
-                    message_placeholder.markdown(full_response + "▌")
-                message_placeholder.markdown(full_response)
-                st.session_state.memory_variables.save_context(
-                    {"input": prompt}, {"output": full_response}
-                )
-            st.session_state.chat_msg.append(
-                {"role": "assistant", "content": full_response}
-            )
+			with st.chat_message("assistant"):
+				message_placeholder = st.empty()
+				full_response = ""
+				# Call rag_results and pass the prompt variable into the function
+				rag = rag_results(prompt)
+				# add the rag variable after the memory context
+				for response in chat_completion_stream(st.session_state.prompt_template + memory_context + rag, prompt):
+					full_response += (response.choices[0].delta.content or "")
+					message_placeholder.markdown(full_response + "▌")
+				message_placeholder.markdown(full_response)
+				st.session_state.memory_variables.save_context({"input": prompt}, {"output": full_response})	
+			st.session_state.chat_msg.append(
+				{"role": "assistant", "content": full_response}
+			)
 
     except Exception as e:
         st.error(e)

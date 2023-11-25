@@ -18,10 +18,11 @@ from agent import (
 )
 from analytics_dashboard import pandas_ai
 from assistant import assistant_demo, init_session_state
-from authenticate import check_password, login_function
-from bot_settings import bot_settings_interface, load_bot_settings
-from chatbot import api_call, call_api, rule_based
-from class_dash import download_data_table_csv
+from k_map import map_creation_form
+#New schema move function fom settings
+from database_schema import create_dbs
+import exercises as ex
+
 from database_module import (
     backup_s3_database,
     check_aws_secrets_exist,
@@ -289,347 +290,145 @@ def main():
         create_dbs()
         initialise_admin_account()
 
-        # PLEASE REMOVE THIS or COMMENT IT
-        # st.write("User Profile: ", st.session_state.user)
+		#PLEASE REMOVE THIS or COMMENT IT 
+		#st.write("User Profile: ", st.session_state.user)
+		
+		#PLEASE REMOVE ABOVE
+		with st.sidebar: #options for sidebar
+			
+			if st.session_state.login == False:
+				st.image("AI logo.png")
+				st.session_state.option = menu([MenuItem('Users login', icon='people')])
+			else:
+				#can do a test if user is school is something show a different logo and set a different API key
+				if st.session_state.user['profile_id'] == SA: #super admin login feature
+					# Initialize the session state for function options	
+					initialize_session_state(MENU_FUNCS, False)
+				else:
+					if st.session_state.acknowledgement == False:
+						initialize_session_state(MENU_FUNCS, True)
+					else:
+						set_function_access_for_user(st.session_state.user['id'])
+						#st.write("Function options: ", st.session_state.func_options)
+					# Using the is_function_disabled function for setting the `disabled` attribute
+				st.session_state.option = sac.menu([
+					sac.MenuItem('Home', icon='house', children=[
+						sac.MenuItem(return_function_name('Personal Dashboard'), icon='person-circle', disabled=is_function_disabled('Personal Dashboard')),
+						#sac.MenuItem('Class Dashboard', icon='clipboard-data', disabled=is_function_disabled('Class Dashboard')),
+					]),
 
-        # PLEASE REMOVE ABOVE
-        with st.sidebar:  # options for sidebar
-            if st.session_state.login == False:
-                st.image("AI logo.png")
-                st.session_state.option = menu([MenuItem("Users login", icon="people")])
-            else:
-                # can do a test if user is school is something show a different logo and set a different API key
-                if (
-                    st.session_state.user["profile_id"] == SA
-                ):  # super admin login feature
-                    # Initialize the session state for function options
-                    initialize_session_state(MENU_FUNCS, False)
-                else:
-                    if st.session_state.acknowledgement == False:
-                        initialize_session_state(MENU_FUNCS, True)
-                    else:
-                        set_function_access_for_user(st.session_state.user["id"])
-                        # st.write("Function options: ", st.session_state.func_options)
-                    # Using the is_function_disabled function for setting the `disabled` attribute
-                st.session_state.option = sac.menu(
-                    [
-                        sac.MenuItem(
-                            "Home",
-                            icon="house",
-                            children=[
-                                sac.MenuItem(
-                                    return_function_name("Personal Dashboard"),
-                                    icon="person-circle",
-                                    disabled=is_function_disabled("Personal Dashboard"),
-                                ),
-                                # sac.MenuItem('Class Dashboard', icon='clipboard-data', disabled=is_function_disabled('Class Dashboard')),
-                            ],
-                        ),
-                        sac.MenuItem(
-                            "Basic AI",
-                            icon="robot",
-                            children=[
-                                sac.MenuItem(
-                                    return_function_name("Machine Learning"),
-                                    icon="clipboard-data",
-                                    disabled=is_function_disabled("Machine Learning"),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name("Deep Learning"),
-                                    icon="clipboard-data",
-                                    disabled=is_function_disabled("Deep Learning"),
-                                ),
-                            ],
-                        ),
-                        sac.MenuItem(
-                            "GenAI Features & Apps",
-                            icon="book",
-                            children=[
-                                sac.MenuItem(
-                                    return_function_name("AI Analytics"),
-                                    icon="graph-up",
-                                    disabled=is_function_disabled("AI Analytics"),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "Image Generator",
-                                        "Image Analyser and Generator",
-                                    ),
-                                    icon="camera",
-                                    disabled=is_function_disabled("Image Generator"),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "Voice", "Voice Analyser and Generator"
-                                    ),
-                                    icon="mic",
-                                    disabled=is_function_disabled("Voice"),
-                                ),
-                            ],
-                        ),
-                        sac.MenuItem(
-                            "Coding Exercises",
-                            icon="person-fill-gear",
-                            children=[
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "Streamlit App Ex", "Streamlit App (Exercise)"
-                                    ),
-                                    icon="filetype-py",
-                                    disabled=is_function_disabled("Streamlit App Ex"),
-                                    children=[
-                                        sac.MenuItem(
-                                            "Python Exercises", icon="filetype-py"
-                                        ),
-                                        sac.MenuItem(
-                                            "First Streamlit App", icon="filetype-py"
-                                        ),
-                                    ],
-                                ),
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "Rule Based Chatbot Ex",
-                                        "Rule Based Chatbot (Exercise)",
-                                    ),
-                                    icon="filetype-py",
-                                    disabled=is_function_disabled(
-                                        "Rule Based Chatbot Ex"
-                                    ),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "Open AI API Call Ex",
-                                        "Open AI API Call (Exercise)",
-                                    ),
-                                    icon="filetype-py",
-                                    disabled=is_function_disabled(
-                                        "Open AI API Call Ex"
-                                    ),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "AI Chatbot Ex", "AI Chatbot(Exercise)"
-                                    ),
-                                    icon="filetype-py",
-                                    disabled=is_function_disabled("AI Chatbot Ex"),
-                                    children=[
-                                        sac.MenuItem(
-                                            "OpenAI Basebot", icon="filetype-py"
-                                        ),
-                                        sac.MenuItem(
-                                            "OpenAI Basebot with streaming",
-                                            icon="filetype-py",
-                                        ),
-                                        sac.MenuItem(
-                                            "Prompt Design Template", icon="filetype-py"
-                                        ),
-                                        sac.MenuItem(
-                                            "OpenAI Basebot with Prompt Design",
-                                            icon="filetype-py",
-                                        ),
-                                        sac.MenuItem("Memory", icon="filetype-py"),
-                                        sac.MenuItem(
-                                            "OpenAI Basebot with Memory",
-                                            icon="filetype-py",
-                                        ),
-                                        sac.MenuItem("RAG", icon="filetype-py"),
-                                        sac.MenuItem(
-                                            "OpenAI Basebot with Memory & RAG",
-                                            icon="filetype-py",
-                                        ),
-                                        sac.MenuItem("Database", icon="filetype-py"),
-                                        sac.MenuItem(
-                                            "OpenAI Basebot with Memory & RAG & recorded",
-                                            icon="filetype-py",
-                                        ),
-                                    ],
-                                ),
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "Agent Chatbot Ex", "Agent Chatbot(Exercise)"
-                                    ),
-                                    icon="filetype-py",
-                                    disabled=is_function_disabled("Agent Chatbot Ex"),
-                                    children=[
-                                        sac.MenuItem(
-                                            "Basic Langchain Agent Chatbot",
-                                            icon="filetype-py",
-                                        ),
-                                        sac.MenuItem(
-                                            "OpenAI Assistant Chatbot",
-                                            icon="filetype-py",
-                                        ),
-                                    ],
-                                ),
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "Gen AI Prototype Ex",
-                                        "GenAi prototype Application(Exercise)",
-                                    ),
-                                    icon="filetype-py",
-                                    disabled=is_function_disabled(
-                                        "Gen AI Prototype Ex"
-                                    ),
-                                ),
-                            ],
-                        ),
-                        sac.MenuItem(
-                            "Types of ChatBots",
-                            icon="person-fill-gear",
-                            children=[
-                                sac.MenuItem(
-                                    return_function_name("Rule Based Chatbot"),
-                                    icon="chat-dots",
-                                    disabled=is_function_disabled("Rule Based Chatbot"),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name("Open AI API Call"),
-                                    icon="chat-dots",
-                                    disabled=is_function_disabled("Open AI API Call"),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name("AI Chatbot"),
-                                    icon="chat-dots",
-                                    disabled=is_function_disabled("AI Chatbot"),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name("Agent Chatbot"),
-                                    icon="chat-dots",
-                                    disabled=is_function_disabled("Agent Chatbot"),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "Chatbot Management", "Bot & Prompt Management"
-                                    ),
-                                    icon="wrench",
-                                    disabled=is_function_disabled("Chatbot Management"),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name("Prototype Application"),
-                                    icon="star-fill",
-                                    disabled=is_function_disabled(
-                                        "Prototype Application"
-                                    ),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name("Prototype Settings"),
-                                    icon="wrench",
-                                    disabled=is_function_disabled("Prototype Settings"),
-                                ),
-                            ],
-                        ),
-                        sac.MenuItem(
-                            "Knowledge Base Tools",
-                            icon="book",
-                            children=[
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "Files management", "Files Management"
-                                    ),
-                                    icon="file-arrow-up",
-                                    disabled=is_function_disabled("Files management"),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "KB management", "Knowledge Base Editor"
-                                    ),
-                                    icon="database-fill-up",
-                                    disabled=is_function_disabled("KB management"),
-                                ),
-                            ],
-                        ),
-                        sac.MenuItem(
-                            "Organisation Tools",
-                            icon="buildings",
-                            children=[
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "Organisation Management", "Org Management"
-                                    ),
-                                    icon="building-gear",
-                                    disabled=is_function_disabled(
-                                        "Organisation Management"
-                                    ),
-                                ),
-                                sac.MenuItem(
-                                    return_function_name(
-                                        "School Users Management", "Users Management"
-                                    ),
-                                    icon="house-gear",
-                                    disabled=is_function_disabled(
-                                        "School Users Management"
-                                    ),
-                                ),
-                            ],
-                        ),
-                        sac.MenuItem(type="divider"),
-                        sac.MenuItem("Profile Settings", icon="gear"),
-                        sac.MenuItem("Application Info", icon="info-circle"),
-                        sac.MenuItem("Logout", icon="box-arrow-right"),
-                    ],
-                    index=st.session_state.start,
-                    format_func="title",
-                    open_all=True,
-                )
+					sac.MenuItem('Basic AI', icon='robot', children=[
+						sac.MenuItem(return_function_name('Machine Learning'), icon='clipboard-data', disabled=is_function_disabled('Machine Learning')),
+						sac.MenuItem(return_function_name('Deep Learning'), icon='clipboard-data', disabled=is_function_disabled('Deep Learning')),
+					]),
 
-        if st.session_state.option == "Users login":
-            col1, col2 = st.columns([3, 4])
-            placeholder = st.empty()
-            with placeholder:
-                with col1:
-                    if login_function() == True:
-                        st.session_state.user = load_user_profile(st.session_state.user)
-                        pre_load_variables(st.session_state.user["id"])
-                        load_and_fetch_vectorstore_for_user(st.session_state.user["id"])
-                        load_bot_settings(st.session_state.user["id"])
-                        st.session_state.login = True
-                        placeholder.empty()
-                        st.rerun()
-                with col2:
-                    pass
-        elif st.session_state.option == "Home":
-            col1, col2 = st.columns([3, 1])
-            with col1:
-                st.subheader(
-                    "Acknowledgement on the use of Generative AI with Large Language Models"
-                )
-                initialize_session_state(MENU_FUNCS, True)
-                st.write(ACK)
-                ack = st.checkbox("I acknowledge the above information")
-                if ack:
-                    st.session_state.acknowledgement = True
-                    set_function_access_for_user(st.session_state.user["id"])
-                    st.session_state.start = 1
-                    st.rerun()
-                else:
-                    st.warning(
-                        "Please acknowledge the above information before you proceed"
-                    )
-                    initialize_session_state(MENU_FUNCS, True)
-                    st.stop()
-                pass
-            with col2:
-                pass
+					sac.MenuItem('GenAI Features & Apps', icon='book', children=[
+						sac.MenuItem(return_function_name('AI Analytics'), icon='graph-up', disabled=is_function_disabled('AI Analytics')),
+						sac.MenuItem(return_function_name('Image Generator','Image Analyser and Generator'), icon='camera', disabled=is_function_disabled('Image Generator')),
+						sac.MenuItem(return_function_name('Voice','Voice Analyser and Generator'), icon='mic',disabled=is_function_disabled('Voice')),
+					]),	
 
-        # Personal Dashboard
-        elif st.session_state.option == "Personal Dashboard":
-            st.subheader(f":green[{st.session_state.option}]")
-            if st.session_state.user["profile_id"] == SA:
-                sch_id, msg = process_user_profile(st.session_state.user["profile_id"])
-                st.write(msg)
-                download_data_table_csv(
-                    st.session_state.user["id"],
-                    sch_id,
-                    st.session_state.user["profile_id"],
-                )
-            else:
-                download_data_table_csv(
-                    st.session_state.user["id"],
-                    st.session_state.user["school_id"],
-                    st.session_state.user["profile_id"],
-                )
-            display_vectorstores()
-            vectorstore_selection_interface(st.session_state.user["id"])
+
+					sac.MenuItem('Coding Exercises', icon='person-fill-gear', children=[
+						sac.MenuItem(return_function_name('Streamlit App Ex','Streamlit App (Exercise)'), icon='filetype-py', disabled=is_function_disabled('Streamlit App Ex'), children=[
+							sac.MenuItem("Python Exercises", icon='filetype-py'),
+							sac.MenuItem("First Streamlit App", icon='filetype-py'),]),
+						sac.MenuItem(return_function_name('Rule Based Chatbot Ex','Rule Based Chatbot (Exercise)'), icon='filetype-py', disabled=is_function_disabled('Rule Based Chatbot Ex')),
+						sac.MenuItem(return_function_name('Open AI API Call Ex','Open AI API Call (Exercise)'), icon='filetype-py', disabled=is_function_disabled('Open AI API Call Ex')),
+						sac.MenuItem(return_function_name('AI Chatbot Ex','AI Chatbot(Exercise)'), icon='filetype-py', disabled=is_function_disabled('AI Chatbot Ex'), children=[
+							sac.MenuItem("OpenAI Basebot", icon='filetype-py'),
+							sac.MenuItem("OpenAI Basebot with streaming", icon='filetype-py'),
+							sac.MenuItem("Prompt Design Template", icon='filetype-py'),
+							sac.MenuItem("OpenAI Basebot with Prompt Design", icon='filetype-py'),
+							sac.MenuItem("Memory", icon='filetype-py'),
+							sac.MenuItem("OpenAI Basebot with Memory", icon='filetype-py'),
+							sac.MenuItem("RAG", icon='filetype-py'),
+							sac.MenuItem("OpenAI Basebot with Memory & RAG", icon='filetype-py'),
+							sac.MenuItem("Database", icon='filetype-py'),
+							sac.MenuItem("OpenAI Basebot with Memory & RAG & recorded", icon='filetype-py'),
+						]),
+						sac.MenuItem(return_function_name('Agent Chatbot Ex','Agent Chatbot(Exercise)'), icon='filetype-py', disabled=is_function_disabled('Agent Chatbot Ex'), children=[
+							sac.MenuItem("Knowledge Map Generator", icon='filetype-py'),
+							sac.MenuItem("Basic Langchain Agent Chatbot", icon='filetype-py'),
+							sac.MenuItem("OpenAI Assistant Chatbot", icon='filetype-py'),
+						]),
+						sac.MenuItem(return_function_name('Gen AI Prototype Ex', 'GenAi prototype Application(Exercise)'), icon='filetype-py', disabled=is_function_disabled('Gen AI Prototype Ex')),
+						
+					]),
+
+					sac.MenuItem('Types of ChatBots', icon='person-fill-gear', children=[
+						sac.MenuItem(return_function_name('Rule Based Chatbot'), icon='chat-dots', disabled=is_function_disabled('Rule Based Chatbot')),
+						sac.MenuItem(return_function_name('Open AI API Call'), icon='chat-dots', disabled=is_function_disabled('Open AI API Call')),
+						sac.MenuItem(return_function_name('AI Chatbot'), icon='chat-dots', disabled=is_function_disabled('AI Chatbot')),
+						sac.MenuItem(return_function_name('Agent Chatbot'), icon='chat-dots', disabled=is_function_disabled('Agent Chatbot')),
+						sac.MenuItem(return_function_name('Chatbot Management', 'Bot & Prompt Management'), icon='wrench', disabled=is_function_disabled('Chatbot Management')),
+						sac.MenuItem(return_function_name('Prototype Application'), icon='star-fill', disabled=is_function_disabled('Prototype Application')),
+						sac.MenuItem(return_function_name('Prototype Settings'), icon='wrench', disabled=is_function_disabled('Prototype Settings')),
+						
+					]),
+					sac.MenuItem('Knowledge Base Tools', icon='book', children=[
+						sac.MenuItem(return_function_name('Files management', 'Files Management'), icon='file-arrow-up', disabled=is_function_disabled('Files management')),
+						sac.MenuItem(return_function_name('KB management', 'Knowledge Base Editor'), icon='database-fill-up',disabled=is_function_disabled('KB management')),
+					]),
+					sac.MenuItem('Organisation Tools', icon='buildings', children=[
+						sac.MenuItem(return_function_name( 'Organisation Management','Org Management'), icon='building-gear', disabled=is_function_disabled('Organisation Management')),
+						sac.MenuItem(return_function_name('School Users Management', 'Users Management'), icon='house-gear', disabled=is_function_disabled('School Users Management')),
+					]),
+					sac.MenuItem(type='divider'),
+					sac.MenuItem('Profile Settings', icon='gear'),
+					sac.MenuItem('Application Info', icon='info-circle'),
+					sac.MenuItem('Logout', icon='box-arrow-right'),
+				], index=st.session_state.start, format_func='title', open_all=True)
+		
+		if st.session_state.option == 'Users login':
+				col1, col2 = st.columns([3,4])
+				placeholder = st.empty()
+				with placeholder:
+					with col1:
+						if login_function() == True:
+							st.session_state.user = load_user_profile(st.session_state.user)
+							pre_load_variables(st.session_state.user['id'])
+							load_and_fetch_vectorstore_for_user(st.session_state.user['id'])
+							load_bot_settings(st.session_state.user['id'])
+							st.session_state.login = True
+							placeholder.empty()
+							st.rerun()
+					with col2:
+						pass
+		elif st.session_state.option == 'Home':
+			col1, col2 = st.columns([3,1])
+			with col1:
+				st.subheader("Acknowledgement on the use of Generative AI with Large Language Models")
+				initialize_session_state(MENU_FUNCS, True)
+				st.write(ACK)
+				ack = st.checkbox("I acknowledge the above information")
+				if ack:
+					st.session_state.acknowledgement = True
+					set_function_access_for_user(st.session_state.user['id'])
+					st.session_state.start = 1
+					st.rerun()
+				else:
+					st.warning("Please acknowledge the above information before you proceed")
+					initialize_session_state(MENU_FUNCS, True)
+					st.stop()
+				pass
+			with col2:
+				pass
+		
+		#Personal Dashboard
+		elif st.session_state.option == 'Personal Dashboard':
+			st.subheader(f":green[{st.session_state.option}]")
+			if st.session_state.user['profile_id'] == SA:
+				sch_id, msg = process_user_profile(st.session_state.user["profile_id"])
+				st.write(msg)
+				download_data_table_csv(st.session_state.user["id"], sch_id, st.session_state.user["profile_id"])
+			else:
+				download_data_table_csv(st.session_state.user["id"], st.session_state.user["school_id"], st.session_state.user["profile_id"])
+			display_vectorstores()
+			vectorstore_selection_interface(st.session_state.user['id'])
+		elif st.session_state.option == 'Knowledge Map Generator':
+			st.subheader(f":green[{st.session_state.option}]")
+			
 
         elif st.session_state.option == "Machine Learning":
             st.subheader(f":green[{st.session_state.option}]")
@@ -805,11 +604,16 @@ def main():
             else:
                 ex.agent_bot()
 
-        elif st.session_state.option == "OpenAI Assistant Chatbot":
-            # call the agent chatbot function here
-            init_session_state()
-            assistant_demo()
-            pass
+		elif st.session_state.option == 'OpenAI Assistant Chatbot':
+			#call the agent chatbot function here
+			#ASSISTANT_ID = "asst_SN0BhLgX1qI3ztb3JOJ6t52P"
+			#MAPBOX_TOKEN = "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"
+			if "ASSISTANT_ID" in st.secrets or "MAPBOX_TOKEN" in st.secrets:
+				init_session_state()
+				assistant_demo()
+			else:
+				st.warning("Please enter your Assistant ID and Mapbox Token to enable this feature")
+			pass
 
         elif st.session_state.option == "GenAi prototype Application(Exercise)":
             # call the prototype application function here
