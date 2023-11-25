@@ -113,18 +113,19 @@ def rule_based_question_answering_challenge():
 	st.write("Previous query is " + st.session_state.previous_query)
 	question = st.text_input("Enter your query:")
 	#modify below to use session state
+	if "previous_query" not in st.session_state:
+		st.session_state.previous_query = ""
 	if question == "What is your name?":
-		#st.write...
-		#st.session_state.previous_query.....
-		pass
+		st.write("My name is EAI, an electronic artificial being.")
+		st.session_state.previous_query = question
 	elif question == "How old are you?":
-		#st.write...
-		#st.session_state.previous_query.....
-		pass
+		st.write("Today is my birthday!")
+		st.session_state.previous_query = question
+	elif question == "Show me the previous query":
+		st.write("Previous query is " + st.session_state.previous_query)
 	else:
-		#st.write...
-		#st.session_state.previous_query.....
-		pass
+		st.write("I am sorry, I am unable to help you with your query.")
+		st.session_state.previous_query = question
 
 #exercise 5
 def simple_data_structure():
