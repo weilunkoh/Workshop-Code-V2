@@ -311,8 +311,8 @@ def rule_based_chatbot():
 		st.session_state.messages.append({"role": "user", "content": prompt})
 		
 		#modify the code below to create a rule based bot ( challenge 2), replace f"Echo: {prompt}" with get_reply(prompt)
-		response = f"Echo: {prompt}"
-		#response = get_reply(prompt)
+		# response = f"Echo: {prompt}"
+		response = get_reply(prompt)
 
 		# Display assistant response in chat message container
 		with st.chat_message("assistant"):
@@ -363,9 +363,11 @@ def call_api_challenge():
 		#modify the code below to create a function call_api to pass the prompt_design and prompt_query to call the OpenAI API
 		if prompt_design and prompt_query:
 			#call your api_call function here
-			st.write("Call the api_call function here")
+			# st.write("Call the api_call function here")
+			api_call(prompt_design, prompt_query)
 		else:
 			st.warning("Please enter a prompt design and prompt query.")
+
 #challenge 2 this function below is called by the call_api_challenge function
 def api_call(p_design, p_query):
 	openai.api_key = return_api_key()
@@ -431,7 +433,8 @@ def ai_chatbot():
 		st.session_state.messages.append({"role": "user", "content": prompt})
 		
 		#remove get_reply function and replace with chat_completion function and pass in two parameters
-		response = get_reply(prompt)
+		# response = get_reply(prompt)
+		response = chat_completion("You are a helpful assistant", prompt)
 		
 
 		# Display assistant response in chat message container
@@ -499,7 +502,7 @@ def prompt_design():
 	prompt_design = st.text_input("Enter your the prompt design for the chatbot:", value="You are a helpful assistant.")
 	if prompt_design and name:
 		st.session_state.prompt_template = prompt_design + f" .You are talking to a person called {name}."
-		st.success("Prompt Design: " + prompt_design + " . \n\n You are talking to a person called " + name + ".")
+		st.success("Prompt Design: " + prompt_design + "\n\n You are talking to a person called " + name + ".")
 
 #Challenge 5 - Set the prompt design for the chatbot for the AI Chatbot
 #Hint Replace You are a helpful assistant with the prompt design variable #st.session_state.prompt_template
@@ -525,7 +528,8 @@ def basebot_prompt_design():
 				full_response = ""
 				# streaming function
 				#replace the prompt design "You are a helpful assistant" with the prompt design variable st.session_state.prompt_template
-				for response in chat_completion_stream("You are a helpful assistant", prompt):
+				# for response in chat_completion_stream("You are a helpful assistant", prompt):
+				for response in chat_completion_stream(st.session_state.prompt_template, prompt):
 					full_response += (response.choices[0].delta.content or "")
 					message_placeholder.markdown(full_response + "▌")
 				message_placeholder.markdown(full_response)
@@ -579,7 +583,7 @@ def basebot_prompt_design_memory():
 				message_placeholder = st.empty()
 				full_response = ""
 				# Add teh memory context after the st.session_state.prompt_template
-				for response in chat_completion_stream(st.session_state.prompt_template, prompt):
+				for response in chat_completion_stream(st.session_state.prompt_template + memory_context, prompt):
 					full_response += (response.choices[0].delta.content or "")
 					message_placeholder.markdown(full_response + "▌")
 				message_placeholder.markdown(full_response)
@@ -646,7 +650,7 @@ def basebot_prompt_design_memory_rag():
 				# Call rag_results and pass the prompt variable into the function
 				rag = rag_results(prompt)
 				# add the rag variable after the memory context
-				for response in chat_completion_stream(st.session_state.prompt_template + memory_context , prompt):
+				for response in chat_completion_stream(st.session_state.prompt_template + memory_context + rag, prompt):
 					full_response += (response.choices[0].delta.content or "")
 					message_placeholder.markdown(full_response + "▌")
 				message_placeholder.markdown(full_response)
