@@ -23,6 +23,11 @@ from langchain.utilities import WikipediaAPIWrapper
 from langchain.agents import tool
 import json
 
+# For prototype application
+from langchain.document_loaders import PyPDFLoader
+from langchain.text_splitter import RecursiveCharacterTextSplitter
+import tiktoken
+
 cwd = os.getcwd()
 WORKING_DIRECTORY = os.path.join(cwd, "database")
 
@@ -37,8 +42,8 @@ else:
 # os.environ.get("OPENAI_API_KEY")
 # api_key=return_api_key()
 client = OpenAI(
-    # defaults to os.environ.get("OPENAI_API_KEY")
-    api_key=return_api_key(),
+	# defaults to os.environ.get("OPENAI_API_KEY")
+	api_key=return_api_key(),
 )
 
 #Only modify the code below for the exercises and challenges
@@ -356,10 +361,9 @@ def api_call(p_design, p_query):
 
 
 #Exercise 3 is to simplify the api call function and create the chat completion function
-def chat_completion(prompt_design, prompt):
-	MODEL = "gpt-3.5-turbo"
+def chat_completion(prompt_design, prompt, model_name="gpt-3.5-turbo"):
 	response = client.chat.completions.create(
-		model=MODEL,
+		model=model_name,
 		messages=[
 			{"role": "system", "content": prompt_design},
 			{"role": "user", "content": prompt},
@@ -402,11 +406,10 @@ def ai_chatbot():
 
 
 # Exercise 4 - Customising the chat completion with streaming
-def chat_completion_stream(prompt_design, prompt):
+def chat_completion_stream(prompt_design, prompt, model_name="gpt-3.5-turbo"):
 	openai.api_key = return_api_key()
-	MODEL = "gpt-3.5-turbo"
 	response = client.chat.completions.create(
-		model=MODEL,
+		model=model_name,
 		messages=[
 			{"role": "system", "content": prompt_design},
 			{"role": "user", "content": prompt},
@@ -856,8 +859,73 @@ def agent_bot_with_more_tools():
 
 #------------final exercise of the day ----------------------------------------------------------------------------------------------#
 def prototype_application():
+	model_name = "gpt-3.5-turbo"
+	# model_name = "gpt-4-1106-preview"
 	#insert the code
-	st.write("Prototype Application")
-	pass
+	st.title("PDF Summariser")
+	uploaded_pdf = st.file_uploader(
+		"Upload a PDF file of any length for an LLM to summarise.", 
+		type="pdf"
+	)
+	if uploaded_pdf:
+		# Save the uploaded file to a temporary directory
+		file_path = f"downloaded_resources/temp/{uploaded_pdf.name}"
+		with open(file_path, "wb") as f:
+			f.write(uploaded_pdf.getbuffer())
+		
+		# Load the PDF file into a PyPDF object
+		pdf_loader = PyPDFLoader(file_path)
+		pdf = pdf_loader.load()	
+		st.write(f"Loaded PDF with {len(pdf)} pages.")
+		pdf_text = " ".join([page.page_content for page in pdf])
 
+		# Estimate the number of tokens in the PDF
+		encoding = tiktoken.encoding_for_model(model_name)
+		encoded = encoding.encode(pdf_text)
+		st.write(f"Estimated number of tokens in the PDF: {len(encoded)}")
 
+		# Split the PDF into chunks
+		splitter = RecursiveCharacterTextSplitter(chunk_size=12000, chunk_overlap=0)
+		chunks = splitter.split_text(pdf_text)
+		st.write(f"Split the PDF into {len(chunks)} chunks.")
+		st.write(f"Estimated number of tokens in each chunk: {[len(encoding.encode(chunk)) for chunk in chunks]}")
+
+		chunk_counter = 1		
+		with st.chat_message("assistant"):
+			st.write(f"Chunk {chunk_counter} of {len(chunks)}")
+			message_placeholder = st.empty()
+			full_response = ""
+			summary_prompt = "You are a Singapore legal expert. Summarise the chunk of a judgment into 30 words."
+			for response in chat_completion_stream(
+				summary_prompt,
+				f"Judgment Chunk: {chunks[0]}",
+				# f"Judgment: {pdf_text}",
+				model_name=model_name,
+			):
+				full_response += (response.choices[0].delta.content or "")
+				message_placeholder.markdown(full_response + "▌")
+			message_placeholder.markdown(full_response)
+
+			refining_prompt = "You are a Singapore legal expert."
+			refining_prompt += "Given another chunk of the judgment, give a 10 words extension to the summary."
+			summary = full_response
+
+			for chunk in chunks[1:]:
+				st.divider()
+				chunk_counter += 1
+				st.write(f"Chunk {chunk_counter} of {len(chunks)}")
+				message_placeholder = st.empty()
+				full_response = ""	
+				for response in chat_completion_stream(
+					refining_prompt,
+					f"Judgment Chunk: {chunk} \n Summary So Far: {summary}",
+					model_name=model_name,
+				):
+					full_response += (response.choices[0].delta.content or "")
+					message_placeholder.markdown(full_response + "▌")
+
+				message_placeholder.markdown(full_response)
+				summary = f"{summary} {full_response}"
+				print(summary)
+
+		
