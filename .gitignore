@@ -12,3 +12,5 @@ __pycache__/
 *.db
 moe_lcc/
 cache/
+downloaded_resources/
+datafiles/
