@@ -17,7 +17,8 @@ from nocode_workshop.assistant import assistant_demo, init_session_state
 from nocode_workshop.k_map import map_creation_form
 #New schema move function fom settings
 from basecode.database_schema import create_dbs
-from coding_workshop import exercises as ex
+from coding_workshop import exercises_ans as ex
+from coding_workshop import exercises as my_ex
 
 from basecode.database_module import (
 	manage_tables, 
@@ -559,7 +560,7 @@ def main():
 
 		elif st.session_state.option == 'GenAi prototype Application(Exercise)':
 			#call the prototype application function here
-			ex.prototype_application()
+			my_ex.prototype_application()
 		
 		#========================ZERO CODE workshop code below do not modify========================#
 
