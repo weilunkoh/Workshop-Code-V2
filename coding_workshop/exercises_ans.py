@@ -212,7 +212,8 @@ def append_form_data_to_list():
 
 
 #Streamlit App challenge - python recap and streamlit
-def streamlit_app_example():
+# def streamlit_app_example():
+def streamlit_app():
 	st.title("Streamlit App Exercise")
 	# Initialize session state
 	if 'participants' not in st.session_state:
