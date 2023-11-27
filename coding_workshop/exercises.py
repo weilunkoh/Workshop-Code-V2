@@ -863,126 +863,16 @@ def agent_bot_with_more_tools():
 			]
 
 #------------final exercise of the day ----------------------------------------------------------------------------------------------#
-def _summary_chat_completion_stream(
-	prompt_design, 
-	prompt, 
-	model_name="gpt-3.5-turbo", 
-	show_divider=True,
-	show_chunk_num=False,
-	chunk_no=1,
-	num_chunks=1,
-	max_tokens=300
-):
-	if show_divider:
-		st.divider()
-	
-	if show_chunk_num:
-		st.write(f"Chunk {chunk_no} of {num_chunks}")
-		
-	message_placeholder = st.empty()
-	full_response = ""
-	for response in chat_completion_stream(
-		prompt_design,
-		prompt,
-		model_name=model_name,
-		max_tokens=max_tokens
-	):
-		full_response += (response.choices[0].delta.content or "")
-		message_placeholder.markdown(full_response + "▌")
-	message_placeholder.markdown(full_response)
-	return full_response
-
 # Version 1
-# def prototype_application():
-# 	# Set config
-# 	# model_name = "gpt-3.5-turbo"
-# 	# chunk_size = 12000
-# 	model_name = "gpt-3.5-turbo-1106"
-# 	chunk_size = 15000
-# 	# model_name = "gpt-4-1106-preview"
-# 	# chunk_size = 100000
-# 	num_start = 30
-# 	num_next = 30
-# 	max_tokens=100
-
-# 	#Code Logic
-# 	st.title("PDF Summariser")
-# 	uploaded_pdf = st.file_uploader(
-# 		"Upload a PDF file of any length for an LLM to summarise.", 
-# 		type="pdf"
-# 	)
-# 	if uploaded_pdf:
-# 		# Save the uploaded file to a temporary directory
-# 		file_path = f"downloaded_resources/temp/{uploaded_pdf.name}"
-# 		with open(file_path, "wb") as f:
-# 			f.write(uploaded_pdf.getbuffer())
-		
-# 		# Load the PDF file into a PyPDF object
-# 		pdf_loader = PyPDFLoader(file_path)
-# 		pdf = pdf_loader.load()	
-# 		st.write(f"Loaded PDF with {len(pdf)} pages.")
-# 		pdf_text = " ".join([page.page_content for page in pdf])
-
-# 		# Estimate the number of tokens in the PDF
-# 		encoding = tiktoken.encoding_for_model(model_name)
-# 		encoded = encoding.encode(pdf_text)
-# 		st.write(f"Estimated number of tokens in the PDF: {len(encoded)}")
-
-# 		# Split the PDF into chunks
-# 		splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=0)
-# 		chunks = splitter.split_text(pdf_text)
-# 		st.write(f"Split the PDF into {len(chunks)} chunks.")
-# 		st.write(f"Estimated number of tokens in each chunk: {[len(encoding.encode(chunk)) for chunk in chunks]}")
-
-# 		chunk_counter = 1		
-# 		with st.chat_message("assistant"):
-# 			summary_prompt = f"You are a Singapore legal expert. Summarise the chunk of a judgment into {num_start} words."
-# 			full_response = _summary_chat_completion_stream(
-# 				summary_prompt,
-# 				f"Judgment Chunk: {chunks[0]}",
-# 				model_name=model_name,
-# 				show_divider=False,
-# 				show_chunk_num=True,
-# 				chunk_no=chunk_counter,
-# 				num_chunks=len(chunks),
-# 				max_tokens=max_tokens
-# 			)
-
-# 			refining_prompt = "You are a Singapore legal expert. "
-# 			refining_prompt += f"Given another chunk of the judgment, give me a sentence or paragraph with {num_next} words that can be added "
-# 			refining_prompt += "to the existing summary to form a combined summary that is coherent. "
-# 			refining_prompt += f"Do not include the existing summary in your response. Just give me the additional {num_next} words. "
-# 			refining_prompt += "Do not repeat any material that is already in the existing summary. You can return an empty string if you cannot think of anything to add."
-# 			refining_prompt += f"Do not give any headings or subheadings to indicate the {num_next} words."
-# 			summary = full_response
-
-# 			for chunk in chunks[1:]:
-# 				chunk_counter += 1
-# 				full_response = _summary_chat_completion_stream(
-# 					refining_prompt,
-# 					f"Judgment Chunk: {chunk} \n Existing Summary: {summary}",
-# 					model_name=model_name,
-# 					show_divider=True,
-# 					show_chunk_num=True,
-# 					chunk_no=chunk_counter,
-# 					num_chunks=len(chunks),
-# 					max_tokens=max_tokens
-# 				)
-# 				summary = f"{summary} {full_response}"
-# 				print(summary)
-			
-# 			st.divider()			
-# 			st.write("Final Summary:")
-# 			st.write(summary)
-
-# Version 2
 def prototype_application():
 	# Set config
+	# model_name = "gpt-3.5-turbo"
+	# chunk_size = 12000
 	model_name = "gpt-3.5-turbo-1106"
-	chunk_size = 30000
+	chunk_size = 15000
 	# model_name = "gpt-4-1106-preview"
 	# chunk_size = 100000
-	num_start = 100
+	num_start = 30
 	num_next = 30
 	max_tokens=None
 
@@ -1017,8 +907,7 @@ def prototype_application():
 
 		chunk_counter = 1		
 		with st.chat_message("assistant"):
-			role_prompt = "You are a Singapore legal expert."
-			summary_prompt = f"{role_prompt} Summarise the chunk of a judgment into {num_start} words."
+			summary_prompt = f"You are a Singapore legal expert. Summarise the chunk of a judgment into {num_start} words."
 			full_response = _summary_chat_completion_stream(
 				summary_prompt,
 				f"Judgment Chunk: {chunks[0]}",
@@ -1030,16 +919,17 @@ def prototype_application():
 				max_tokens=max_tokens
 			)
 
-			refining_prompt = f" {role_prompt} Given another judgment chunk, continue the existing summary "
-			refining_prompt += f"by adding a sentence or paragraph with {num_next} words. "
-			refining_prompt += f"Return the existing summary with the additional {num_next} words as your response. "
-			refining_prompt += "Do not repeat any material that is already in the existing summary. "
-			refining_prompt += "'You can return the existing summary as it is if there is nothing to add."
-
+			refining_prompt = "You are a Singapore legal expert. "
+			refining_prompt += f"Given another chunk of the judgment, give me a sentence or paragraph with {num_next} words that can be added "
+			refining_prompt += "to the existing summary to form a combined summary that is coherent. "
+			refining_prompt += f"Do not include the existing summary in your response. Just give me the additional {num_next} words. "
+			refining_prompt += "Do not repeat any material that is already in the existing summary. You can return an empty string if you cannot think of anything to add."
+			refining_prompt += f"Do not give any headings or subheadings to indicate the {num_next} words."
 			summary = full_response
+
 			for chunk in chunks[1:]:
 				chunk_counter += 1
-				summary = _summary_chat_completion_stream(
+				full_response = _summary_chat_completion_stream(
 					refining_prompt,
 					f"Judgment Chunk: {chunk} \n Existing Summary: {summary}",
 					model_name=model_name,
@@ -1048,4 +938,136 @@ def prototype_application():
 					chunk_no=chunk_counter,
 					num_chunks=len(chunks),
 					max_tokens=max_tokens
-				)	
+				)
+				summary = f"{summary} {full_response}"
+				print(summary)
+			
+			st.divider()			
+			st.write("Final Summary:")
+			st.write(summary)
+
+def _summary_chat_completion_stream(
+	system_prompt, 
+	user_prompt,
+	assistant_prompt=None,
+	model_name="gpt-3.5-turbo", 
+	show_divider=True,
+	show_chunk_num=False,
+	chunk_no=1,
+	num_chunks=1,
+	max_tokens=None
+):
+	if show_divider:
+		st.divider()
+	
+	if show_chunk_num:
+		st.write(f"Chunk {chunk_no} of {num_chunks}")
+		
+	message_placeholder = st.empty()
+	full_response = ""
+
+	messages = [
+		{"role": "system", "content": system_prompt},
+		{"role": "user", "content": user_prompt},
+	]
+
+	if assistant_prompt is not None:
+		messages.insert(1, {"role": "assistant", "content": assistant_prompt})
+
+	print([msg["role"] for msg in messages])
+
+	encoding = tiktoken.encoding_for_model(model_name)
+	print(len(encoding.encode(" ".join([msg["content"] for msg in messages]))))
+
+	openai.api_key = return_api_key()
+	streaming_responses = client.chat.completions.create(
+		model=model_name,
+		messages=messages,
+		temperature=0,  # temperature
+		stream=True,  # stream option,
+		max_tokens=max_tokens
+	)
+
+	for response in streaming_responses:
+		full_response += (response.choices[0].delta.content or "")
+		message_placeholder.markdown(full_response + "▌")
+	message_placeholder.markdown(full_response)
+	return full_response
+
+# Version 2
+# def prototype_application():
+# 	# Set config
+# 	model_name = "gpt-3.5-turbo-1106"
+# 	chunk_size = 30000
+# 	# model_name = "gpt-4-1106-preview"
+# 	# chunk_size = 100000
+# 	num_start = 100
+# 	num_next = 30
+# 	max_tokens=None
+
+# 	#Code Logic
+# 	st.title("PDF Summariser")
+# 	uploaded_pdf = st.file_uploader(
+# 		"Upload a PDF file of any length for an LLM to summarise.", 
+# 		type="pdf"
+# 	)
+# 	if uploaded_pdf:
+# 		# Save the uploaded file to a temporary directory
+# 		file_path = f"downloaded_resources/temp/{uploaded_pdf.name}"
+# 		with open(file_path, "wb") as f:
+# 			f.write(uploaded_pdf.getbuffer())
+		
+# 		# Load the PDF file into a PyPDF object
+# 		pdf_loader = PyPDFLoader(file_path)
+# 		pdf = pdf_loader.load()	
+# 		st.write(f"Loaded PDF with {len(pdf)} pages.")
+# 		pdf_text = " ".join([page.page_content for page in pdf])
+
+# 		# Estimate the number of tokens in the PDF
+# 		encoding = tiktoken.encoding_for_model(model_name)
+# 		encoded = encoding.encode(pdf_text)
+# 		st.write(f"Estimated number of tokens in the PDF: {len(encoded)}")
+
+# 		# Split the PDF into chunks
+# 		splitter = RecursiveCharacterTextSplitter(chunk_size=chunk_size, chunk_overlap=0)
+# 		chunks = splitter.split_text(pdf_text)
+# 		st.write(f"Split the PDF into {len(chunks)} chunks.")
+# 		st.write(f"Estimated number of tokens in each chunk: {[len(encoding.encode(chunk)) for chunk in chunks]}")
+
+# 		chunk_counter = 1		
+# 		with st.chat_message("assistant"):
+# 			role_prompt = "You are a Singapore legal expert who is explaining a case by using summary to another lawyer."
+# 			initial_prompt = f"Summarise this chunk of a judgment into {num_start} words: "
+# 			full_response = _summary_chat_completion_stream(
+# 				system_prompt=role_prompt,
+# 				user_prompt=f"{initial_prompt}{chunks[0]}",
+# 				model_name=model_name,
+# 				show_divider=False,
+# 				show_chunk_num=True,
+# 				chunk_no=chunk_counter,
+# 				num_chunks=len(chunks),
+# 				max_tokens=max_tokens
+# 			)
+
+# 			refining_prompt = f"{role_prompt} Given another judgment chunk, continue the existing summary "
+# 			refining_prompt += f"by adding a sentence or paragraph with {num_next} words. "
+# 			refining_prompt += f"Return the existing summary with the additional {num_next} words as your response. "
+# 			refining_prompt += "Do not repeat any material that is already in the existing summary. "
+# 			refining_prompt += "You can return the existing summary as it is if there is nothing to add. "
+# 			refining_prompt += "Do not give any headings or subheadings to indicate the existing summary or additional words. "
+# 			refining_prompt += f"Judgment Chunk: "
+
+# 			summary = full_response
+# 			for chunk in chunks[1:]:
+# 				chunk_counter += 1
+# 				summary = _summary_chat_completion_stream(
+# 					system_prompt=role_prompt,
+# 					user_prompt=f"{refining_prompt}{chunk}",
+# 					assistant_prompt=f"Existing Summary: {summary}",
+# 					model_name=model_name,
+# 					show_divider=True,
+# 					show_chunk_num=True,
+# 					chunk_no=chunk_counter,
+# 					num_chunks=len(chunks),
+# 					max_tokens=max_tokens
+# 				)	

@@ -563,14 +563,13 @@ def main():
 			#call the prototype application function here
 			options = sac.buttons(
 							items=[
-								sac.ButtonsItem(label='Prototype Application', icon='app',),
+								sac.ButtonsItem(label='Prototype Application: Summariser', icon='app',),
 								sac.ButtonsItem(label='Template 1 - Form', icon='app'),
 								sac.ButtonsItem(label='Template 2 - Chatbot', icon='chat'),
 								sac.ButtonsItem(label='Template 3 - Assistant', icon='chat-left'),
-								sac.ButtonsItem(label='Self Summariser', icon='file-text'),
 							], index=0, format_func='title', align='center')
-			if options == 'Prototype Application':
-				ex.prototype_application()
+			if options == 'Prototype Application: Summariser':
+				my_ex.prototype_application()
 			elif options == 'Template 1 - Form':
 				tpl.template1_form_with_genai_call()
 			elif options == 'Template 2 - Chatbot':
@@ -580,8 +579,6 @@ def main():
 					tpl.template3_openai_assistant()
 				else:
 					st.warning("Please enter or create your OpenAI Assistant API key to enable this feature")
-			elif options == 'Summariser':
-				my_ex.prototype_application()
 			# ex.prototype_application()
 			# st.divider()
 			# tpl.template1_form_with_genai_call()
